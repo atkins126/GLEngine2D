@@ -79,7 +79,7 @@ Type
       Procedure Add;  virtual;abstract;
       Procedure Draw;
 
-      function IsExtensionSupported(szTargetExtension: string): boolean; 
+      function IsExtensionSupported(szTargetExtension: string): boolean;
     end;
 
   TVBOSprite = class(TVBOPrimitive)
@@ -96,7 +96,6 @@ Type
 
 
    VBOSprite:TVBOSprite;
-   pfd:TPixelFormatDescriptor;
    AAFormat:Integer;
    xl,yl:single;
    w,h:word;
@@ -111,7 +110,7 @@ Type
    FrameBuffer: Cardinal;
    StartDrawTime,EndDrawTime,TimeDraw:Int64;
    Font: HFONT;
-   Procedure DrawQuad(pX, pY, pZ, pWidth, pHeight : Single; Center,Tile:boolean);
+   Procedure DrawQuad( pWidth, pHeight : Single; Center,Tile:boolean);
    procedure GetPixelFormat(AASamples : Integer );
    procedure SetDCPixelFormat (dc : HDC);
 
@@ -160,7 +159,7 @@ Type
   {+}Procedure BarGrad(x1,y1,x2,y2,x3,y3,x4,y4:single;c1,c2,c3,c4:TGLColor); Overload;
 
   {+}Procedure Ellipse(x,y,r1,r2,whidth,AngleRotate:single;n:integer);
-     Procedure Polygon(x,y,AngleRotate,TesAngleRotate:single; n: array of TGLPoint);
+     Procedure Polygon(x,y,AngleRotate,TextureAngleRotate:single; n: array of TGLPoint);
      procedure PolygonTexture(x,y,AngleRotate,TexAngle:single;Trans, Scale: TGLPoint; vertex,tex: array of TGLPoint; image:Cardinal);
      procedure PolygonTess( x, y, AngleRotate: single; n: array of TGLPoint ); // Ñïàñèáî cain
      Procedure Tesselate (var inVertexArray,outVertexArray: array of TGLPoint);
@@ -274,7 +273,7 @@ begin
     GL_LINEAR                - BiLinear filtering
     GL_LINEAR_MIPMAP_NEAREST - Basic mipmapped texture
     GL_LINEAR_MIPMAP_LINEAR  - BiLinear Mipmapped texture
-  }  
+  }
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); { only first two can be used }
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST); { all of the above can be used }
@@ -475,7 +474,8 @@ begin
   if LoadFromResource then // Load from resource
   begin
     try
-      ResStream := TResourceStream.Create(hInstance, PChar(copy(Filename, 1, Pos('.', Filename)-1)), 'JPEG');
+    //  ResStream := TResourceStream.Create(hInstance, PChar(copy(Filename, 1, Pos('.', Filename)-1)), RT_RCDATA);
+      ResStream := TResourceStream.Create(hInstance, PChar(Filename), RT_RCDATA);
       JPG.LoadFromStream(ResStream);
       ResStream.Free;
     except on
@@ -921,7 +921,7 @@ else
 glEnd;
 end;    }
 
-procedure TGLEngine.DrawQuad(pX, pY, pZ, pWidth, pHeight : Single; Center,Tile:boolean);
+procedure TGLEngine.DrawQuad( pWidth, pHeight : Single; Center,Tile:boolean);
 var
  dx,dy:single;
  Width,Height:integer;
@@ -938,43 +938,58 @@ begin
  glBegin(GL_QUADS);
  if center then
  begin
-  glTexCoord2f(0, 0);  glVertex3f(-pWidth/2, -pHeight/2, -pZ);
-  glTexCoord2f(dx,0);  glVertex3f( pWidth/2, -pHeight/2, -pZ);
-  glTexCoord2f(dx,dy); glVertex3f( pWidth/2, pHeight/2,  -pZ);
-  glTexCoord2f(0, dy); glVertex3f(-pWidth/2, pHeight/2,  -pZ);
+  if not toFrameBufer then
+   begin
+    glTexCoord2f(0, 0);  glVertex3f(-pWidth/2, -pHeight/2, 0);
+    glTexCoord2f(dx,0);  glVertex3f( pWidth/2, -pHeight/2, 0);
+    glTexCoord2f(dx,dy); glVertex3f( pWidth/2, pHeight/2,  0);
+    glTexCoord2f(0, dy); glVertex3f(-pWidth/2, pHeight/2,  0);
+   end
+  else
+   begin
+    glTexCoord2f(0, 0);  glVertex3f(-pWidth/2, -pHeight/2, 0);
+    glTexCoord2f(dx,0);  glVertex3f( pWidth/2, -pHeight/2, 0);
+    glTexCoord2f(dx,dy); glVertex3f( pWidth/2, pHeight/2, 0);
+    glTexCoord2f(0, dy); glVertex3f(-pWidth/2, pHeight/2, 0);
+   end;
  end
 else
  begin
  if not toFrameBufer then
   begin
-   glTexCoord2f(0,0);  glVertex3f(0, 0, -pZ);
-   glTexCoord2f(dx,0);  glVertex3f(pWidth, 0, -pZ);
-   glTexCoord2f(dx,-dy); glVertex3f(pWidth, pHeight, -pZ);
-   glTexCoord2f(0,-dy); glVertex3f(0,pHeight, -pZ);
+   glTexCoord2f(0, 0);  glVertex3f(0, 0, 0);
+   glTexCoord2f(dx,0);  glVertex3f(pWidth, 0, 0);
+   glTexCoord2f(dx,dy); glVertex3f(pWidth, pHeight, 0);
+   glTexCoord2f(0, dy); glVertex3f(0,pHeight, 0);
   end
   else
   begin
-   glTexCoord2f(0,0); glVertex3f(0, 0, -pZ);
-   glTexCoord2f(dx,0); glVertex3f(pWidth, 0, -pZ);
-   glTexCoord2f(dx,dy); glVertex3f(pWidth, pHeight, -pZ);
-   glTexCoord2f(0,dy); glVertex3f(0,pHeight, -pZ);
+   glTexCoord2f(0, 0);   glVertex3f(0, 0, 0);
+   glTexCoord2f(dx,0);   glVertex3f(pWidth, 0, 0);
+   glTexCoord2f(dx,dy); glVertex3f(pWidth, pHeight, 0);
+   glTexCoord2f(0, dy); glVertex3f(0,pHeight, 0);
   end;
  end;
-glEnd;
+ glEnd;
 end;
 
 procedure TGLEngine.DrawImage(x,y,w,h,Angle:single;Center,tile:boolean;Image:Cardinal);
 begin
- glMatrixMode(GL_TEXTURE);
+ {glMatrixMode(GL_TEXTURE);
   glLoadIdentity();
- glMatrixMode(GL_MODELVIEW);
+ glMatrixMode(GL_MODELVIEW); }
 
  glBindTexture(GL_TEXTURE_2D, Image);
  glEnable(GL_TEXTURE_2D);
  glPushMatrix();
+{  if not toFrameBufer then
+   glTranslated(x,y,0)
+  else
+   glTranslated(x,256-y,0);}
+
   glTranslated(x,y,0);
   glRotatef(Angle, 0,0,1);
-  DrawQuad(x,y,0, w,h,Center,tile);
+  DrawQuad(w,h,Center,tile);
  glPopMatrix();
  glDisable(GL_TEXTURE_2D);
 end;
@@ -997,7 +1012,7 @@ begin
  glPushMatrix();
   glTranslated(x,y,0);
   glRotatef(Angle, 0,0,1);
-  DrawQuad(x,y,0, w,h,Center,tile);
+  DrawQuad(w,h,Center,tile);
  glPopMatrix();
 end;
 
@@ -1125,15 +1140,33 @@ end;
 
 function TGLEngine.LoadImage(Filename: String; var Texture: Cardinal;
   LoadFromRes: Boolean): Boolean;
+var
+ ImageType:string;
 begin
- if copy(Uppercase(filename), length(filename)-3, 4) = '.BMP' then
-  LoadBMPTexture(Filename, Texture, LoadFromRes);
- if copy(Uppercase(filename), length(filename)-3, 4) = '.JPG' then
-  LoadJPGTexture(Filename, Texture, LoadFromRes);
- if copy(Uppercase(filename), length(filename)-3, 4) = '.TGA' then
-  LoadTGATexture(Filename, Texture, LoadFromRes);
- if copy(Uppercase(filename), length(filename)-3, 4) = '.PNG' then
-  LoadPNGTexture(Filename, Texture, LoadFromRes);
+
+ if not LoadFromRes then
+ begin
+  if copy(Uppercase(Filename), Length(Filename) - 3, 4) = '.BMP' then
+      LoadBMPTexture(Filename, Texture, LoadFromRes);
+    if copy(Uppercase(Filename), Length(Filename) - 3, 4) = '.JPG' then
+      LoadJPGTexture(Filename, Texture, LoadFromRes);
+    if copy(Uppercase(Filename), Length(Filename) - 3, 4) = '.TGA' then
+      LoadTGATexture(Filename, Texture, LoadFromRes);
+    if copy(Uppercase(Filename), Length(Filename) - 3, 4) = '.PNG' then
+      LoadPNGTexture(Filename, Texture, LoadFromRes);
+  End
+  else
+  begin
+     ImageType:=copy(Uppercase(Filename), 1, 3);
+    if ImageType = 'BMP' then
+      LoadBMPTexture(Filename, Texture, LoadFromRes);
+    if ImageType ='JPG' then
+      LoadJPGTexture(Filename, Texture, LoadFromRes);
+    if ImageType = 'TGA' then
+      LoadTGATexture(Filename, Texture, LoadFromRes);
+    if ImageType = 'PNG' then
+      LoadPNGTexture(Filename, Texture, LoadFromRes);
+  end;
 
 end;
 
@@ -1239,16 +1272,17 @@ end;
 
 procedure TGLEngine.KillFont;
 begin
-  glDeleteLists(FontHandle,255);                                 // Smaže všech 96 znakù (display listù)
+  glDeleteLists(FontHandle,257);                                 // Smaže všech 96 znakù (display listù)
   DeleteObject(font);
 end;
 
 procedure TGLEngine.TextOut(x,y:single; text:AnsiString; angle:single=0);
 begin
-  if text = '' then exit;                                 // Byl pøedán text?
+  if text = '' then exit;
 
   glPushAttrib(GL_LIST_BIT);
   glPushMatrix();
+
   glRasterPos2f(x,y);
 
 ////////////////////
@@ -1257,9 +1291,11 @@ begin
 // glEnable(GL_POLYGON_SMOOTH);
 
 //  glTranslatef(x, y, 0.0);
-//   glRotatef(Angle, 0,0,1);
+ //  glRotatef(Angle, 0,0,1);
 //  glScalef (15.0, -15.0, 1.0);                      // Uloží souèasný stav display listù
 ////////////////////////
+ //  glPixelZoom(1,10);
+//  glTranslatef (10,-1,1);
   glListBase(FontHandle);
   glCallLists(length(text),GL_UNSIGNED_BYTE,Pchar(text)); // Vykreslí display listy
   glPopMatrix();
@@ -1455,7 +1491,7 @@ begin
   DestroyWindow(hwnd);
   wglMakeCurrent(0, 0);
   wglDeleteContext(DC);
-end;  
+end;
 end;
 
 procedure TGLEngine.SetDCPixelFormat (dc : HDC);
@@ -1918,7 +1954,7 @@ end;                   }
 
 procedure TGLEngine.BeginRenderToTex(Image: Cardinal; w,h:glint);
 begin
-  glEnable(GL_TEXTURE_2D);
+{  glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, Image);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1930,19 +1966,55 @@ begin
     GL_TEXTURE_2D, Image, 0);
   glPushAttrib(GL_VIEWPORT_BIT);
   glViewport(0, 0, w, h);
+
   glPushMatrix;
   glLoadIdentity;
    toFrameBufer:=true;
- glDisable(GL_TEXTURE_2D);
+ glDisable(GL_TEXTURE_2D);    }
+
+ glPushMatrix;
+ glViewport(0, 0, w, h);
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity;
+  glOrtho (0, w, 0, h, -100,100 );
+  glMatrixMode(GL_MODELVIEW);
+
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, Image);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA,
+    GL_UNSIGNED_BYTE, nil);
+
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, FrameBuffer);
+  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+    GL_TEXTURE_2D, Image, 0);
+    glDisable(GL_TEXTURE_2D);
 end;
 
 procedure TGLEngine.EndRenderToTex;
 begin
- glPopMatrix;
+{ glPopMatrix;
  glPopAttrib;
  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
  toFrameBufer:=false;
- glDisable(GL_TEXTURE_2D);
+ glDisable(GL_TEXTURE_2D);}
+ glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+    GL_TEXTURE_2D, 0, 0);
+ glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+ toFrameBufer:=false;
+ glBindTexture(GL_TEXTURE_2D, 0);
+
+ glViewport(0, 0, w, h);
+
+ glMatrixMode(GL_PROJECTION);
+  glLoadIdentity;
+  glOrtho (0, w, h, 0, -100,100 );
+  glMatrixMode(GL_MODELVIEW);
+ glPopMatrix;
+
+
 end;
 
 procedure TGLEngine.Rectangle(x1, y1, x2, y2: single);
@@ -1971,7 +2043,7 @@ begin
 // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 // glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap
  glGenerateMipmap(textureId);
- glTexImage2D(GL_TEXTURE_2D, 0, 3, w, h, 0,
+ glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0,
              GL_RGBA, GL_UNSIGNED_BYTE, nil);
  glBindTexture(GL_TEXTURE_2D, 0);
   result :=textureId;
@@ -2075,14 +2147,14 @@ begin
  VBOSprite.add(x,y,w,h);
 end;
 
-procedure TGLEngine.Polygon(x,y,AngleRotate,TesAngleRotate:single; n: array of TGLPoint);
+procedure TGLEngine.Polygon(x,y,AngleRotate,TextureAngleRotate:single; n: array of TGLPoint);
 var
  i:integer;
 begin
 glPushMatrix();
 
  glMatrixMode(GL_TEXTURE);
- glRotatef(TesAngleRotate,0,0,1);
+ glRotatef(TextureAngleRotate,0,0,1);
  glMatrixMode(GL_MODELVIEW);
 
  glTranslated(x,y,0);
@@ -2157,7 +2229,7 @@ procedure TGLEngine.Tesselate(var inVertexArray,
 var
  tobj : pGLUtesselator;
  inv,outv : array of TVector3d;
- i,k:integer;
+ i:integer;
 begin
   tobj := gluNewTess();
   SetLength( inv, Length( inVertexArray ) );
@@ -2178,12 +2250,9 @@ begin
       gluTessBeginContour(tobj);
 
       For i:=0 to High( inVertexArray )  do
-      begin
-       k:=i;
        gluTessVertex(tobj, inv[ i ], @inv[ i ] );
-      end;
 
-      gluTessEndContour(tobj);
+    gluTessEndContour(tobj);
    gluTessEndPolygon(tobj);
 
    For i:=0 to High( inVertexArray )  do
@@ -2197,24 +2266,23 @@ end;
 procedure TGLEngine.PolygonFromArray(x, y, AngleRotate: single;
   n: array of TGLPoint);
 var
- v : array of TVector3d;
  i:integer;
 begin
-glPushMatrix();
+ glPushMatrix();
  glTranslated(x,y,0);
  glRotatef(AngleRotate, 0,0,1);
-//  glBegin(GL_POLYGON);
+ //  glBegin(GL_POLYGON);
  glBegin(GL_TRIANGLE_FAN );
   For i:=0 to High(n)  do
    glVertex3d(n[i].x,n[i].y,0);
   glEnd();
-glPopMatrix();
+ glPopMatrix();
 end;
 
 procedure TGLEngine.PolygonTexture(x, y, AngleRotate,TexAngle: single; Trans, Scale: TGLPoint; vertex,
   tex: array of TGLPoint; image: Cardinal);
 var
- i:integer;  
+ i:integer;
 begin
 glPushMatrix();
 
@@ -2226,7 +2294,7 @@ glPushMatrix();
 
  glTranslated(0.5,0.5,0);
   glRotatef(TexAngle,0,0,1);
- glTranslated(-0.5,-0.5,0); 
+ glTranslated(-0.5,-0.5,0);
 
  glTranslated(Trans.x,Trans.y,0);
  glScalef(Scale.x,Scale.y,0);
@@ -2261,7 +2329,7 @@ end;
 
 procedure TGLEngine.ScreenShot(var BMP: TBitMap; AWidth, AHeight: integer);
 begin
- // ñîõðàíèò â BMP !ÑËÅÄÓÞÙÈÉ! êàäð! 
+ // ñîõðàíèò â BMP !ÑËÅÄÓÞÙÈÉ! êàäð!
  needScreenShot:=true;
  scs_BMP:=BMP;
  scs_AWidth:= AWidth;
@@ -2271,7 +2339,6 @@ end;
 procedure TGLEngine._ScreenShot(var BMP: TBitMap;AWidth,AHeight:integer);
 var
   LPixels: array of Byte;
-  LLine: PByteArray;
   Index: Integer;
   p1, p2: pointer;
 begin
